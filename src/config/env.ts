@@ -35,8 +35,10 @@ const envSchema = z.object({
 
   // HTTP transport (used by the optional Streamable HTTP entrypoint; the stdio
   // entrypoint ignores these).
-  HTTP_PORT: z.coerce.number().int().positive().default(3000),
-  HTTP_HOST: z.string().min(1).default("127.0.0.1"),
+  // Azure App Service (and most PaaS hosts) inject the listen port via PORT and
+  // require binding 0.0.0.0; fall back to those so the app runs there unchanged.
+  HTTP_PORT: z.coerce.number().int().positive().default(Number(process.env.PORT) || 3000),
+  HTTP_HOST: z.string().min(1).default("0.0.0.0"),
   MCP_HTTP_PATH: z
     .string()
     .min(1)
