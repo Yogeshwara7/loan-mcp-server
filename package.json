@@ -1,0 +1,51 @@
+{
+  "name": "loan-mcp-server",
+  "version": "1.0.0",
+  "description": "Production-grade Model Context Protocol (MCP) server for a Loan Management System backed by Microsoft Dataverse.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "loan-mcp-server": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "start:http": "node dist/http.js",
+    "dev": "tsx watch src/index.ts",
+    "dev:http": "tsx watch src/http.ts",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test-client.mjs",
+    "test:client": "node scripts/test-client.mjs",
+    "test:batch": "node scripts/batch-test.mjs",
+    "test:http": "node scripts/test-http.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "dataverse",
+    "loan",
+    "entra-id",
+    "dynamics"
+  ],
+  "author": "Innorve",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/msal-node": "^2.16.2",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "pino": "^9.5.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
