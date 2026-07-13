@@ -264,23 +264,27 @@ with an actionable message.
 npm install        # install dependencies
 npm run build      # compile TypeScript to dist/
 
-# stdio transport (Claude Desktop launches this as a child process)
-npm start          # node dist/index.js
-npm run dev        # from source with reload
-
-# Streamable HTTP transport (for Copilot Studio / remote clients)
-npm run start:http # node dist/http.js  -> listens on HTTP_PORT (default 3000)
+# Streamable HTTP transport (default `start`; for Copilot Studio / remote / Azure)
+npm start          # node dist/http.js  -> listens on HTTP_PORT (default 3000)
 npm run dev:http   # from source with reload
+
+# stdio transport (Claude Desktop launches this as a child process)
+npm run start:stdio # node dist/index.js
+npm run dev         # from source with reload
 
 npm run typecheck  # type-check without emitting
 ```
 
+> `npm start` runs the **HTTP** server so cloud hosts (Azure App Service) that
+> invoke `npm start` work with no custom startup command. Claude Desktop launches
+> the stdio entrypoint (`dist/index.js`) directly, so this doesn't affect it.
+
 ### Transports
 
-| Transport           | Entrypoint     | Command             | Use with                       |
-| ------------------- | -------------- | ------------------- | ------------------------------ |
-| **stdio**           | `src/index.ts` | `npm start`         | Claude Desktop (local)         |
-| **Streamable HTTP** | `src/http.ts`  | `npm run start:http`| Copilot Studio / remote clients |
+| Transport           | Entrypoint     | Command              | Use with                       |
+| ------------------- | -------------- | -------------------- | ------------------------------ |
+| **Streamable HTTP** | `src/http.ts`  | `npm start`          | Copilot Studio / remote / Azure |
+| **stdio**           | `src/index.ts` | `npm run start:stdio`| Claude Desktop (local)         |
 
 Both expose the identical server, auth, service and 12 tools — only the
 transport differs. The **stdio** server has no port (an MCP client launches it
