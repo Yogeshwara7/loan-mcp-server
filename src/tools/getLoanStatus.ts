@@ -1,4 +1,3 @@
-/** MCP tool: GetLoanStatus — lightweight status view of one loan. */
 import { ToolNames } from "../config/index.js";
 import { mapLoan, toLoanStatus } from "../models/loan.js";
 import { referenceNumberSchema } from "./schemas.js";

@@ -1,4 +1,3 @@
-/** MCP tool: TrackLoanTimeline — chronological milestones for one loan. */
 import { ToolNames } from "../config/index.js";
 import { buildTimeline, mapLoan } from "../models/loan.js";
 import { referenceNumberSchema } from "./schemas.js";

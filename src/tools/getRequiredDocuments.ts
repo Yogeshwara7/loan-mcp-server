@@ -1,4 +1,3 @@
-/** MCP tool: GetRequiredDocuments — required document list for a loan type. */
 import { ToolNames } from "../config/index.js";
 import { loanTypeSchema } from "./schemas.js";
 import { defineTool } from "./shared.js";

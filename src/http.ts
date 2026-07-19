@@ -1,21 +1,5 @@
 #!/usr/bin/env node
-/**
- * Optional HTTP entrypoint using the MCP **Streamable HTTP** transport.
- *
- * This exposes the exact same server, auth, service and tools as the stdio
- * entrypoint (`index.ts`) — only the transport differs — so it can be reached by
- * cloud MCP clients such as Copilot Studio. The stdio entrypoint remains the
- * default for Claude Desktop.
- *
- * Endpoints (all on MCP_HTTP_PATH, default /mcp):
- *   POST   - client -> server JSON-RPC messages (initialize establishes a session)
- *   GET    - server -> client SSE stream for an established session
- *   DELETE - terminate a session
- * Plus GET /healthz for liveness probes.
- *
- * Sessions are tracked by the `mcp-session-id` header. The auth token cache and
- * Dataverse service (single Axios instance) are shared across all sessions.
- */
+// Streamable HTTP entrypoint exposing the same server as the stdio entrypoint.
 import { randomUUID } from "node:crypto";
 import {
   createServer as createHttpServer,
@@ -38,13 +22,11 @@ import { handleWhatsappWebhook, isWhatsappConfigured } from "./whatsapp/bridge.j
 const log = childLogger("http");
 const { server: httpConfig } = appConfig;
 
-// Shared dependencies: one token cache + one Axios instance for all sessions.
+// One token cache + one Axios instance shared across all sessions.
 const tokenProvider = new EntraAuthProvider(appConfig);
 const dataverseService = new DataverseService(appConfig, tokenProvider);
-// Context for the WhatsApp bridge's LLM tool-calling loop.
 const toolContext: ToolContext = { service: dataverseService, config: appConfig };
 
-/** Active transports keyed by session id. */
 const transports = new Map<string, StreamableHTTPServerTransport>();
 
 function applyCors(res: ServerResponse): void {
@@ -70,9 +52,8 @@ function rpcError(res: ServerResponse, status: number, message: string): void {
   });
 }
 
-/** Validate the optional API key. Returns true when the request may proceed. */
 function isAuthorized(req: IncomingMessage): boolean {
-  if (!httpConfig.apiKey) return true; // auth disabled
+  if (!httpConfig.apiKey) return true;
   const headerKey = req.headers["x-api-key"];
   const provided =
     (Array.isArray(headerKey) ? headerKey[0] : headerKey) ??
@@ -102,7 +83,6 @@ function readJsonBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
-/** Build a fresh transport + server for a new session, sharing dependencies. */
 async function createSession(): Promise<StreamableHTTPServerTransport> {
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
@@ -120,9 +100,7 @@ async function createSession(): Promise<StreamableHTTPServerTransport> {
   };
 
   const server = createServer({ tokenProvider, dataverseService });
-  // Cast bridges an `exactOptionalPropertyTypes` mismatch between the SDK's
-  // transport class (onclose typed `(() => void) | undefined`) and its own
-  // `Transport` interface; the runtime contract is fully satisfied.
+  // Cast bridges an exactOptionalPropertyTypes mismatch in the SDK; runtime contract is satisfied.
   await server.connect(transport as unknown as Transport);
   return transport;
 }
@@ -138,7 +116,6 @@ const httpServer = createHttpServer(async (req, res) => {
 
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 
-    // Liveness probe (unauthenticated).
     if (req.method === "GET" && url.pathname === "/healthz") {
       sendJson(res, 200, {
         status: "ok",
@@ -148,7 +125,7 @@ const httpServer = createHttpServer(async (req, res) => {
       return;
     }
 
-    // WhatsApp (Twilio) webhook. Auth is via Twilio signature, not the MCP key.
+    // WhatsApp webhook: auth is via Twilio signature, not the MCP key.
     if (req.method === "POST" && url.pathname === appConfig.whatsapp.path) {
       await handleWhatsappWebhook(req, res, toolContext);
       return;
@@ -207,7 +184,6 @@ function shutdown(signal: string): void {
     void transport.close();
   }
   httpServer.close(() => process.exit(0));
-  // Force-exit if connections linger.
   setTimeout(() => process.exit(0), 5_000).unref();
 }
 

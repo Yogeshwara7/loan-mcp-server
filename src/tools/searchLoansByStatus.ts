@@ -1,4 +1,3 @@
-/** MCP tool: SearchLoansByStatus — all loans matching a status label. */
 import { ToolNames } from "../config/index.js";
 import { mapLoan, toLoanListItem } from "../models/loan.js";
 import { statusSchema } from "./schemas.js";

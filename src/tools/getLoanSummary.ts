@@ -1,4 +1,3 @@
-/** MCP tool: GetLoanSummary — full business summary of one loan. */
 import { ToolNames } from "../config/index.js";
 import { mapLoan, toLoanSummary } from "../models/loan.js";
 import { referenceNumberSchema } from "./schemas.js";

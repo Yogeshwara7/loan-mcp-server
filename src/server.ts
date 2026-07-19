@@ -1,7 +1,4 @@
-/**
- * Composition root: wires configuration, auth, the Dataverse service and all
- * MCP tools together (manual dependency injection) and returns a ready server.
- */
+// Composition root: wires config, auth, service and tools into a ready server.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { EntraAuthProvider, type TokenProvider } from "./auth/auth.js";
@@ -24,10 +21,6 @@ export const SERVER_INFO = {
   version: "1.0.0",
 } as const;
 
-/**
- * Build a fully-configured MCP server. Dependencies can be supplied for testing;
- * otherwise real implementations are constructed from configuration.
- */
 export function createServer(deps: ServerDependencies = {}): McpServer {
   const config = deps.config ?? appConfig;
   const tokenProvider = deps.tokenProvider ?? new EntraAuthProvider(config);

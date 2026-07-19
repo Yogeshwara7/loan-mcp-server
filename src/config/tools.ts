@@ -1,7 +1,3 @@
-/**
- * Canonical MCP tool names. Centralized so nothing hardcodes a tool name; tool
- * modules and clients reference these constants.
- */
 export const ToolNames = {
   getLoanSummary: "GetLoanSummary",
   getLoanStatus: "GetLoanStatus",

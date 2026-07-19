@@ -1,4 +1,3 @@
-/** MCP tool: GetOfficerWorkload — assigned loans and workload for an officer. */
 import { ToolNames } from "../config/index.js";
 import { computeOfficerWorkload, mapLoan } from "../models/loan.js";
 import { officerNameSchema } from "./schemas.js";

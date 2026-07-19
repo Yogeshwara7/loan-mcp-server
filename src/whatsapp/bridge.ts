@@ -1,14 +1,4 @@
-/**
- * WhatsApp bridge (Twilio).
- *
- * Receives inbound WhatsApp messages from Twilio's webhook, runs them through
- * the LLM tool-calling loop (which calls the loan tools), and sends the reply
- * back via the Twilio REST API. Replies are sent asynchronously so slow LLM
- * calls never hit Twilio's webhook timeout.
- *
- * The bridge is only active when both the LLM key and Twilio credentials are
- * configured; otherwise inbound messages are acknowledged and ignored.
- */
+// WhatsApp (Twilio) bridge; inert unless LLM key + Twilio credentials are configured.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
@@ -94,7 +84,6 @@ async function sendWhatsapp(config: AppConfig, to: string, body: string): Promis
   });
 }
 
-/** Handle an inbound Twilio WhatsApp webhook POST. */
 export async function handleWhatsappWebhook(
   req: IncomingMessage,
   res: ServerResponse,
@@ -108,7 +97,7 @@ export async function handleWhatsappWebhook(
     return;
   }
 
-  // Acknowledge immediately (empty TwiML) so slow LLM work never times out.
+  // Ack immediately so slow LLM work never times out Twilio's webhook.
   res.writeHead(200, { "Content-Type": "text/xml" });
   res.end(EMPTY_TWIML);
 
@@ -121,7 +110,6 @@ export async function handleWhatsappWebhook(
     return;
   }
 
-  // Fire-and-forget: the response is already sent.
   void processMessage(ctx, from, body);
 }
 

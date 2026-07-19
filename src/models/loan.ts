@@ -1,41 +1,22 @@
-/**
- * Domain models for the Loan Management System.
- *
- * Layering:
- *   1. `DataverseLoanRecord` - RAW Web API shape (logical names). Never crosses
- *      the MCP boundary.
- *   2. `Loan` - the full business-friendly domain object.
- *   3. Projections (`LoanSummary`, `LoanStatus`, `LoanListItem`, timeline,
- *      eligibility, workload, analytics) - what tools return to clients.
- *
- * The mappers here are the single translation point between logical names and
- * business fields; the pure functions (`buildTimeline`, `computeAnalytics`, …)
- * hold loan-domain logic independent of transport or Dataverse.
- */
 import { LoanColumns, type StatusLabels } from "../config/dataverse.js";
 
-/** Annotation suffix Dataverse appends for formatted (display) values. */
 export const FORMATTED_VALUE_ANNOTATION =
   "@OData.Community.Display.V1.FormattedValue";
 
-/** Options controlling how the officer lookup is resolved during mapping. */
 export interface OfficerResolution {
   navigationProperty: string;
   nameField: string;
 }
 
-/** A choice/option-set option (value + display label). */
 export interface ChoiceOption {
   value: number;
   label: string;
 }
 
-/** Raw record from the Dataverse Web API (only requested fields are typed). */
 export interface DataverseLoanRecord {
   [key: string]: unknown;
 }
 
-/** Full business-friendly loan object. */
 export interface Loan {
   referenceNumber: string;
   applicantName: string;
@@ -56,7 +37,6 @@ export interface Loan {
   documentsUploaded: boolean;
 }
 
-/** Full summary returned by GetLoanSummary (stable, original shape). */
 export type LoanSummary = Pick<
   Loan,
   | "referenceNumber"
@@ -75,7 +55,6 @@ export type LoanSummary = Pick<
   | "documentsUploaded"
 >;
 
-/** Lightweight status view returned by GetLoanStatus (stable, original shape). */
 export type LoanStatus = Pick<
   Loan,
   | "referenceNumber"
@@ -85,7 +64,6 @@ export type LoanStatus = Pick<
   | "reviewRequired"
 >;
 
-/** Compact item used by list/search tools. */
 export type LoanListItem = Pick<
   Loan,
   | "referenceNumber"
@@ -101,9 +79,7 @@ export type LoanListItem = Pick<
   | "createdDate"
 >;
 
-// Returned-to-client shapes are declared as `type` aliases (not interfaces) so
-// they carry an implicit index signature and remain assignable to the MCP
-// `Record<string, unknown>` structured-content type.
+// `type` aliases (not interfaces) so these stay assignable to MCP's Record<string, unknown>.
 export type TimelineMilestone = {
   milestone: string;
   timestamp: string;
@@ -156,10 +132,6 @@ export type LoanAnalytics = {
 
 type StatusLabelMap = typeof StatusLabels;
 
-// ---------------------------------------------------------------------------
-// Coercion helpers
-// ---------------------------------------------------------------------------
-
 function toStringValue(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
@@ -183,18 +155,14 @@ function toBooleanValue(value: unknown): boolean {
   return false;
 }
 
-/** Resolve a choice column to its label via the formatted-value annotation. */
+// Choice label comes from the formatted-value annotation.
 function toChoiceValue(record: DataverseLoanRecord, logicalName: string): string {
   const formatted = record[`${logicalName}${FORMATTED_VALUE_ANNOTATION}`];
   const label = toStringValue(formatted);
   return label || toStringValue(record[logicalName]);
 }
 
-/**
- * Resolve the assigned officer's display name. Preference order:
- *   1. Expanded navigation property -> name field.
- *   2. Lookup formatted-value annotation (on the `_value` property).
- */
+// Prefer expanded nav property -> name field; else the lookup formatted value on the `_value` property.
 function resolveAssignedOfficer(
   record: DataverseLoanRecord,
   officer: OfficerResolution,
@@ -210,11 +178,6 @@ function resolveAssignedOfficer(
   return toStringValue(formatted);
 }
 
-// ---------------------------------------------------------------------------
-// Mappers
-// ---------------------------------------------------------------------------
-
-/** Map a raw Dataverse record to the full business `Loan` object. */
 export function mapLoan(record: DataverseLoanRecord, officer: OfficerResolution): Loan {
   return {
     referenceNumber: toStringValue(record[LoanColumns.referenceNumber]),
@@ -282,11 +245,6 @@ export function toLoanListItem(loan: Loan): LoanListItem {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Domain functions
-// ---------------------------------------------------------------------------
-
-/** Build a chronological timeline from available milestone dates. */
 export function buildTimeline(loan: Loan): LoanTimeline {
   const milestones: TimelineMilestone[] = [];
 
@@ -307,7 +265,7 @@ export function buildTimeline(loan: Loan): LoanTimeline {
     });
   }
   if (loan.assignedOfficer) {
-    // No dedicated assignment timestamp exists; anchor to eligibility/creation.
+    // No assignment timestamp exists; anchor to eligibility/creation.
     milestones.push({
       milestone: "Officer Assigned",
       timestamp: loan.eligibilityCheckedOn || loan.createdDate,
@@ -338,7 +296,6 @@ export function buildTimeline(loan: Loan): LoanTimeline {
   };
 }
 
-/** Produce a business-friendly eligibility explanation. */
 export function buildEligibilityExplanation(loan: Loan): EligibilityExplanation {
   const parts: string[] = [];
   if (loan.eligibilityStatus) {
@@ -367,7 +324,6 @@ export function buildEligibilityExplanation(loan: Loan): EligibilityExplanation 
   };
 }
 
-/** Categorize a loan's status label into a known status key. */
 function categorizeStatus(
   status: string,
   labels: StatusLabelMap,
@@ -385,7 +341,6 @@ function emptyBreakdown(): StatusBreakdown {
   return { received: 0, pending: 0, underReview: 0, approved: 0, rejected: 0, other: 0 };
 }
 
-/** Compute an officer's workload from their assigned loans. */
 export function computeOfficerWorkload(
   officerName: string,
   loans: Loan[],
@@ -408,7 +363,6 @@ export function computeOfficerWorkload(
   };
 }
 
-/** Compute portfolio-level analytics over a set of loans. */
 export function computeAnalytics(loans: Loan[], labels: StatusLabelMap): LoanAnalytics {
   const breakdown = emptyBreakdown();
   const amounts: number[] = [];

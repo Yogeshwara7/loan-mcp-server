@@ -1,12 +1,4 @@
-/**
- * Generic OpenAI-compatible tool-calling loop.
- *
- * Used by the WhatsApp bridge as the "brain": it exposes the same 12 loan tools
- * to an LLM (Hugging Face Inference Providers by default), lets the model decide
- * which to call, executes them against the Dataverse service, and returns a
- * natural-language answer. Because the endpoint is OpenAI-compatible, the model
- * or provider can be swapped via configuration alone.
- */
+// Generic OpenAI-compatible tool-calling loop used by the WhatsApp bridge.
 import axios, { type AxiosInstance } from "axios";
 import type { ZodRawShape, ZodTypeAny } from "zod";
 
@@ -58,7 +50,6 @@ function shapeToJsonSchema(shape: ZodRawShape): Record<string, unknown> {
   return { type: "object", properties, required, additionalProperties: false };
 }
 
-/** OpenAI-style tool specs, computed once from the shared tool definitions. */
 const TOOL_SPECS = toolDefinitions.map((def) => ({
   type: "function" as const,
   function: {
@@ -125,10 +116,6 @@ async function chatCompletion(
   return choice.message;
 }
 
-/**
- * Run the assistant for a single user turn. `history` holds prior user/assistant
- * turns (text only); the returned string is the assistant's reply.
- */
 export async function runAssistant(
   userText: string,
   history: ChatMessage[],

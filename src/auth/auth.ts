@@ -1,11 +1,4 @@
-/**
- * Entra ID (Azure AD) authentication using the OAuth 2.0 Client Credentials
- * flow via MSAL Node.
- *
- * MSAL maintains an in-memory token cache; this provider adds a proactive
- * expiry-skew refresh, coalesces concurrent acquisitions, and normalizes
- * failures into `AuthenticationError`.
- */
+// Entra ID client-credentials auth via MSAL.
 import {
   ConfidentialClientApplication,
   type Configuration,
@@ -16,12 +9,10 @@ import type { AppConfig } from "../config/index.js";
 import { AuthenticationError } from "../errors/index.js";
 import { childLogger, type Logger } from "../utils/logger.js";
 
-/** Refresh a token this many milliseconds before its actual expiry. */
+// Refresh early to avoid expiry-skew races; fallback lifetime if MSAL reports no expiry.
 const EXPIRY_SKEW_MS = 60_000;
-/** Fallback token lifetime if MSAL does not report an expiry. */
 const FALLBACK_LIFETIME_MS = 55 * 60_000;
 
-/** Abstraction so consumers depend on the capability, not the implementation. */
 export interface TokenProvider {
   getAccessToken(): Promise<string>;
 }
@@ -65,7 +56,7 @@ export class EntraAuthProvider implements TokenProvider {
       return this.cachedToken;
     }
 
-    // Coalesce concurrent acquisitions so we only call the token endpoint once.
+    // Coalesce concurrent acquisitions into one token-endpoint call.
     this.inFlight ??= this.acquireToken().finally(() => {
       this.inFlight = null;
     });

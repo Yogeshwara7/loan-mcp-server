@@ -1,12 +1,4 @@
-/**
- * Dataverse-specific configuration: the single source of truth for the loan
- * table, its column LOGICAL names, choice columns, the officer lookup and the
- * canonical status labels. Nothing outside this module hardcodes logical names.
- *
- * NOTE: Dataverse column logical names are always lowercase (the PascalCase
- * form in the maker portal is the SCHEMA name). The Web API operates on logical
- * names, so these must be lowercase.
- */
+// Dataverse column logical names must be lowercase (portal PascalCase is the schema name).
 import type { Env } from "./env.js";
 
 export const LoanColumns = {
@@ -32,12 +24,7 @@ export const LoanColumns = {
 
 export type LoanColumnKey = keyof typeof LoanColumns;
 
-/**
- * Choice (Picklist) columns. The Web API returns their integer value on
- * $select; the human-readable label comes from the formatted-value annotation.
- * The mappers read the formatted value for these, and status filtering resolves
- * labels to option values via metadata.
- */
+// Choice/picklist columns: label comes from the formatted-value annotation.
 export const ChoiceColumnKeys = [
   "loanType",
   "status",
@@ -45,11 +32,6 @@ export const ChoiceColumnKeys = [
   "decision",
 ] as const satisfies readonly LoanColumnKey[];
 
-/**
- * Canonical business status labels. Centralized so status-based tools and
- * analytics never hardcode the strings. Values are the labels as configured in
- * the Dataverse choice column.
- */
 export const StatusLabels = {
   received: "Received",
   pending: "Pending",
@@ -60,7 +42,6 @@ export const StatusLabels = {
 
 export type StatusKey = keyof typeof StatusLabels;
 
-/** Columns requested via $select (the lookup attribute is resolved via $expand). */
 const SELECT_COLUMNS: readonly string[] = [
   LoanColumns.referenceNumber,
   LoanColumns.applicantName,
@@ -76,8 +57,7 @@ const SELECT_COLUMNS: readonly string[] = [
   LoanColumns.createdDate,
   LoanColumns.eligibilityCheckedOn,
   LoanColumns.decision,
-  // NOTE: officerAssignedName is a lookup virtual field and is NOT directly
-  // selectable; the officer name is resolved via the $expand of the lookup.
+  // officerAssignedName is a lookup virtual field, NOT $select-able; resolved via $expand.
   LoanColumns.officerComments,
   LoanColumns.documentsUploaded,
 ];
@@ -86,13 +66,9 @@ export function buildDataverseConfig(env: Env) {
   return {
     url: env.DATAVERSE_URL,
     apiVersion: env.DATAVERSE_API_VERSION,
-    /** Fully-qualified Web API root, e.g. https://.../api/data/v9.2 */
     apiBaseUrl: `${env.DATAVERSE_URL}/api/data/${env.DATAVERSE_API_VERSION}`,
-    /** OAuth scope for client-credentials against this environment. */
     scope: `${env.DATAVERSE_URL}/.default`,
-    /** Plural entity set name (data operations). */
     entitySet: env.DATAVERSE_LOAN_TABLE,
-    /** Singular entity logical name (metadata operations). */
     entityLogicalName: env.DATAVERSE_LOAN_ENTITY,
     columns: LoanColumns,
     choiceColumnKeys: ChoiceColumnKeys,

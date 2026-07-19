@@ -1,7 +1,3 @@
-/**
- * Reusable Zod field schemas for tool inputs. Centralized so validation rules
- * and descriptions are defined once and shared across tools.
- */
 import { z } from "zod";
 
 export const referenceNumberSchema = z

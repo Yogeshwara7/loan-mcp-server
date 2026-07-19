@@ -1,4 +1,3 @@
-/** MCP tool: SearchLoansByPhone — all loans for a phone number. */
 import { ToolNames } from "../config/index.js";
 import { mapLoan, toLoanListItem } from "../models/loan.js";
 import { phoneNumberSchema } from "./schemas.js";

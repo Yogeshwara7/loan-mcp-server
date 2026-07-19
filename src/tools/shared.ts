@@ -1,11 +1,4 @@
-/**
- * Shared tool infrastructure.
- *
- * `defineTool` wraps a business function with the cross-cutting concerns every
- * tool needs — argument typing, execution timing, structured logging and
- * error-to-MCP translation — so individual tool modules stay declarative and
- * free of duplication (DRY + single-responsibility).
- */
+// Shared tool infrastructure: typing, timing, logging and error translation.
 import type {
   McpServer,
   ToolCallback,
@@ -38,10 +31,6 @@ export interface ToolDefinition<Shape extends ZodRawShape> {
   execute: (args: ShapeArgs<Shape>, ctx: ToolContext) => Promise<Record<string, unknown>>;
 }
 
-/**
- * Shape-erased tool definition for storage in registries and reuse across
- * consumers (MCP registration + the LLM tool-calling loop).
- */
 export interface AnyToolDefinition {
   name: string;
   title: string;
@@ -82,21 +71,12 @@ export function errorResult(
   };
 }
 
-/**
- * Declare a tool. Type-checks the concrete input shape, then returns the
- * shape-erased definition for storage in the registry. The same definition is
- * consumed by both `registerTool` (MCP) and the LLM tool-calling loop.
- */
 export function defineTool<Shape extends ZodRawShape>(
   def: ToolDefinition<Shape>,
 ): AnyToolDefinition {
   return def as unknown as AnyToolDefinition;
 }
 
-/**
- * Register a tool definition onto an MCP server, wrapping its business function
- * with execution timing, structured logging and error-to-MCP translation.
- */
 export function registerTool(
   server: McpServer,
   def: AnyToolDefinition,
@@ -125,8 +105,7 @@ export function registerTool(
       description: def.description,
       inputSchema: def.inputSchema,
     },
-    // The cast bridges TypeScript's overload inference for the SDK's generic
-    // `registerTool`; the runtime contract is fully satisfied.
+    // Cast bridges the SDK's generic `registerTool` overload inference.
     handler as unknown as ToolCallback<ZodRawShape>,
   );
   registrarLog.debug({ tool: def.name }, "Tool registered");

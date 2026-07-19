@@ -1,4 +1,3 @@
-/** MCP tool: GetLoanAnalytics — portfolio-level loan statistics. */
 import { ToolNames } from "../config/index.js";
 import { computeAnalytics, mapLoan } from "../models/loan.js";
 import { defineTool } from "./shared.js";

@@ -1,4 +1,3 @@
-/** MCP tool: ListPendingReviews — loans currently requiring manual review. */
 import { ToolNames } from "../config/index.js";
 import { mapLoan, toLoanListItem } from "../models/loan.js";
 import { defineTool } from "./shared.js";

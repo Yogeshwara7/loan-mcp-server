@@ -1,8 +1,3 @@
-/**
- * Centralized application configuration. Importing `appConfig` triggers env
- * validation exactly once. All other modules depend on this typed object rather
- * than reading environment variables or hardcoding values.
- */
 import { buildDataverseConfig } from "./dataverse.js";
 import { loadEnvConfig } from "./env.js";
 import {
@@ -60,10 +55,8 @@ function buildConfig() {
 
 export type AppConfig = ReturnType<typeof buildConfig>;
 
-/** Singleton, validated configuration for the whole process. */
 export const appConfig: AppConfig = buildConfig();
 
-// Re-export commonly used constants/types for convenience.
 export { LoanColumns, StatusLabels, ChoiceColumnKeys } from "./dataverse.js";
 export type {
   LoanColumnKey,

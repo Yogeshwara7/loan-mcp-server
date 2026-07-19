@@ -1,4 +1,3 @@
-/** MCP tool: SearchLoansByOfficer — all applications assigned to an officer. */
 import { ToolNames } from "../config/index.js";
 import { mapLoan, toLoanListItem } from "../models/loan.js";
 import { officerNameSchema } from "./schemas.js";

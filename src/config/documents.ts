@@ -1,8 +1,4 @@
-/**
- * Static mapping of loan type -> required documents. Kept in configuration so
- * the GetRequiredDocuments tool has no hardcoded business data. Lookup is
- * case-insensitive; unknown types fall back to `DefaultRequiredDocuments`.
- */
+// Loan type -> required documents; unknown types fall back to DefaultRequiredDocuments.
 export const RequiredDocumentsByLoanType: Readonly<Record<string, readonly string[]>> = {
   "Personal Loan": [
     "Government-issued photo ID",

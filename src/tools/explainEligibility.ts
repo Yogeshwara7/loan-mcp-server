@@ -1,4 +1,3 @@
-/** MCP tool: ExplainEligibility — business-friendly eligibility explanation. */
 import { ToolNames } from "../config/index.js";
 import { buildEligibilityExplanation, mapLoan } from "../models/loan.js";
 import { referenceNumberSchema } from "./schemas.js";

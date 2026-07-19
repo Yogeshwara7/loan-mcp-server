@@ -1,4 +1,3 @@
-/** MCP tool: GetApplicantHistory — all applications for an applicant email. */
 import { ToolNames } from "../config/index.js";
 import { mapLoan, toLoanListItem } from "../models/loan.js";
 import { applicantEmailSchema } from "./schemas.js";

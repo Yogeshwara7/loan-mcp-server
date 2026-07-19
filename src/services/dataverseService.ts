@@ -1,16 +1,4 @@
-/**
- * Reusable Dataverse Web API client (repository/service pattern).
- *
- * Responsibilities:
- *   - Own a single configured Axios instance (base URL, timeout, headers).
- *   - Inject a bearer token on every request via the injected TokenProvider.
- *   - Transparently retry once on a 401 by forcing a token refresh.
- *   - Expose reusable query methods so tools never duplicate HTTP code.
- *   - Translate all failure modes into structured `AppError`s.
- *
- * The service works in RAW records; translation to business models happens in
- * the model mappers so the MCP boundary never sees logical names.
- */
+// Dataverse Web API client.
 import axios, {
   type AxiosError,
   type AxiosInstance,
@@ -31,7 +19,6 @@ import {
 import type { ChoiceOption, DataverseLoanRecord } from "../models/loan.js";
 import { childLogger, type Logger } from "../utils/logger.js";
 
-/** OData query options for a collection request. */
 export interface QueryOptions {
   select?: readonly string[];
   expand?: string;
@@ -49,7 +36,6 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retriedAfterAuthRefresh?: boolean;
 }
 
-/** Guard against runaway pagination loops. */
 const MAX_PAGES = 50;
 
 export class DataverseService {
@@ -57,7 +43,6 @@ export class DataverseService {
   private readonly config: AppConfig;
   private readonly tokenProvider: TokenProvider;
   private readonly log: Logger;
-  /** Cache of resolved choice options keyed by attribute logical name. */
   private readonly choiceCache = new Map<string, ChoiceOption[]>();
 
   constructor(config: AppConfig, tokenProvider: TokenProvider) {
@@ -96,6 +81,7 @@ export class DataverseService {
           original &&
           !original._retriedAfterAuthRefresh
         ) {
+          // On 401, force a token refresh and retry the request once.
           this.log.warn("Received 401; forcing token refresh and retrying once");
           original._retriedAfterAuthRefresh = true;
           const token = await this.tokenProvider.getAccessToken();
@@ -107,11 +93,6 @@ export class DataverseService {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Core reusable query primitives
-  // -------------------------------------------------------------------------
-
-  /** Low-level GET returning parsed data, normalizing errors to AppError. */
   private async httpGet<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     try {
       const response = await this.http.get<T>(url, config);
@@ -121,10 +102,6 @@ export class DataverseService {
     }
   }
 
-  /**
-   * Execute a collection query against any entity set, following server-driven
-   * pagination. This is the single place raw list HTTP is performed.
-   */
   public async executeQuery<T = DataverseLoanRecord>(
     entitySet: string,
     options: QueryOptions = {},
@@ -139,7 +116,6 @@ export class DataverseService {
 
     let pages = 1;
     while (data["@odata.nextLink"] && pages < MAX_PAGES) {
-      // nextLink is an absolute URL that already encodes the query.
       data = await this.httpGet<CollectionResponse<T>>(data["@odata.nextLink"]);
       results.push(...(data.value ?? []));
       pages += 1;
@@ -162,7 +138,6 @@ export class DataverseService {
     return params;
   }
 
-  /** Standard select + officer expand used for full loan records. */
   private loanQueryOptions(filter?: string, top?: number): QueryOptions {
     const { officer, selectColumns } = this.config.dataverse;
     return {
@@ -173,7 +148,6 @@ export class DataverseService {
     };
   }
 
-  /** Quote and escape a value as an OData string literal. */
   private odataString(value: string): string {
     return `'${value.replace(/'/g, "''")}'`;
   }
@@ -186,11 +160,6 @@ export class DataverseService {
     });
   }
 
-  // -------------------------------------------------------------------------
-  // Loan finders
-  // -------------------------------------------------------------------------
-
-  /** Find a single loan by reference number, or null if none exists. */
   public async findLoanByReference(
     referenceNumber: string,
   ): Promise<DataverseLoanRecord | null> {
@@ -200,7 +169,6 @@ export class DataverseService {
     return records[0] ?? null;
   }
 
-  /** Find a single loan by reference number, throwing if it does not exist. */
   public async getLoanByReference(
     referenceNumber: string,
   ): Promise<DataverseLoanRecord> {
@@ -225,12 +193,10 @@ export class DataverseService {
 
   public findLoansByOfficerName(officerName: string): Promise<DataverseLoanRecord[]> {
     const { officer } = this.config.dataverse;
-    // Filter on the expanded lookup's name attribute.
     const filter = `${officer.navigationProperty}/${officer.nameField} eq ${this.odataString(officerName)}`;
     return this.queryLoans(filter);
   }
 
-  /** Find loans by status label (resolved to its option value via metadata). */
   public async findLoansByStatusLabel(
     statusLabel: string,
   ): Promise<DataverseLoanRecord[]> {
@@ -239,16 +205,10 @@ export class DataverseService {
     return this.queryLoans(`${columns.status} eq ${value}`);
   }
 
-  /** All loans (used for portfolio analytics). */
   public findAllLoans(): Promise<DataverseLoanRecord[]> {
     return this.queryLoans();
   }
 
-  // -------------------------------------------------------------------------
-  // Choice / option-set metadata
-  // -------------------------------------------------------------------------
-
-  /** Fetch (and cache) the options for a choice column. */
   public async getChoiceOptions(attributeLogicalName: string): Promise<ChoiceOption[]> {
     const cached = this.choiceCache.get(attributeLogicalName);
     if (cached) return cached;
@@ -282,7 +242,6 @@ export class DataverseService {
     return options;
   }
 
-  /** Resolve a choice label to its integer option value (case-insensitive). */
   public async resolveChoiceValue(
     attributeLogicalName: string,
     label: string,
@@ -302,11 +261,6 @@ export class DataverseService {
     return match.value;
   }
 
-  // -------------------------------------------------------------------------
-  // Officer lookup
-  // -------------------------------------------------------------------------
-
-  /** Fetch a single officer (systemuser) by id, or null if not found. */
   public async getOfficer(
     officerId: string,
   ): Promise<{ id: string; name: string; email: string } | null> {
@@ -326,10 +280,6 @@ export class DataverseService {
       throw error;
     }
   }
-
-  // -------------------------------------------------------------------------
-  // Error normalization
-  // -------------------------------------------------------------------------
 
   private normalizeError(error: unknown): Error {
     if (isAppError(error)) return error;
