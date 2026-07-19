@@ -14,10 +14,10 @@ import { searchLoansByOfficerTool } from "./searchLoansByOfficer.js";
 import { searchLoansByPhoneTool } from "./searchLoansByPhone.js";
 import { searchLoansByStatusTool } from "./searchLoansByStatus.js";
 import { trackLoanTimelineTool } from "./trackLoanTimeline.js";
-import type { ToolRegistrar } from "./shared.js";
+import type { AnyToolDefinition } from "./shared.js";
 
-/** All tool registrars, in a stable, documented order. */
-export const toolRegistrars: readonly ToolRegistrar[] = [
+/** All tool definitions, in a stable, documented order. */
+export const toolDefinitions: readonly AnyToolDefinition[] = [
   // Customer tools
   getLoanSummaryTool,
   getLoanStatusTool,

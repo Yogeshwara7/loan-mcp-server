@@ -31,7 +31,9 @@ import { EntraAuthProvider } from "./auth/auth.js";
 import { appConfig } from "./config/index.js";
 import { DataverseService } from "./services/dataverseService.js";
 import { createServer } from "./server.js";
+import type { ToolContext } from "./tools/shared.js";
 import { childLogger, logger } from "./utils/logger.js";
+import { handleWhatsappWebhook, isWhatsappConfigured } from "./whatsapp/bridge.js";
 
 const log = childLogger("http");
 const { server: httpConfig } = appConfig;
@@ -39,6 +41,8 @@ const { server: httpConfig } = appConfig;
 // Shared dependencies: one token cache + one Axios instance for all sessions.
 const tokenProvider = new EntraAuthProvider(appConfig);
 const dataverseService = new DataverseService(appConfig, tokenProvider);
+// Context for the WhatsApp bridge's LLM tool-calling loop.
+const toolContext: ToolContext = { service: dataverseService, config: appConfig };
 
 /** Active transports keyed by session id. */
 const transports = new Map<string, StreamableHTTPServerTransport>();
@@ -136,7 +140,17 @@ const httpServer = createHttpServer(async (req, res) => {
 
     // Liveness probe (unauthenticated).
     if (req.method === "GET" && url.pathname === "/healthz") {
-      sendJson(res, 200, { status: "ok", sessions: transports.size });
+      sendJson(res, 200, {
+        status: "ok",
+        sessions: transports.size,
+        whatsapp: isWhatsappConfigured(appConfig) ? "enabled" : "disabled",
+      });
+      return;
+    }
+
+    // WhatsApp (Twilio) webhook. Auth is via Twilio signature, not the MCP key.
+    if (req.method === "POST" && url.pathname === appConfig.whatsapp.path) {
+      await handleWhatsappWebhook(req, res, toolContext);
       return;
     }
 

@@ -7,8 +7,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { EntraAuthProvider, type TokenProvider } from "./auth/auth.js";
 import { appConfig, type AppConfig } from "./config/index.js";
 import { DataverseService } from "./services/dataverseService.js";
-import { toolRegistrars } from "./tools/registry.js";
-import type { ToolContext } from "./tools/shared.js";
+import { toolDefinitions } from "./tools/registry.js";
+import { registerTool, type ToolContext } from "./tools/shared.js";
 import { childLogger } from "./utils/logger.js";
 
 const log = childLogger("server");
@@ -45,10 +45,10 @@ export function createServer(deps: ServerDependencies = {}): McpServer {
   });
 
   const ctx: ToolContext = { service: dataverseService, config };
-  for (const register of toolRegistrars) {
-    register(server, ctx);
+  for (const def of toolDefinitions) {
+    registerTool(server, def, ctx);
   }
 
-  log.info({ toolCount: toolRegistrars.length }, "MCP server constructed");
+  log.info({ toolCount: toolDefinitions.length }, "MCP server constructed");
   return server;
 }

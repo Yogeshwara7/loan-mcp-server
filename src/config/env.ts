@@ -48,6 +48,34 @@ const envSchema = z.object({
   MCP_API_KEY: z.string().min(1).optional(),
   /** CORS Access-Control-Allow-Origin for the HTTP transport. */
   MCP_CORS_ORIGIN: z.string().min(1).default("*"),
+
+  // ---- LLM "brain" for the WhatsApp bridge (OpenAI-compatible endpoint) ----
+  // Hugging Face Inference Providers by default. Optional: the bridge is only
+  // active when a key + Twilio credentials are present.
+  HUGGINGFACE_API_KEY: z.string().min(1).optional(),
+  LLM_MODEL: z.string().min(1).default("Qwen/Qwen2.5-72B-Instruct"),
+  LLM_BASE_URL: z
+    .string()
+    .url()
+    .default("https://router.huggingface.co/v1")
+    .transform((value) => value.replace(/\/+$/, "")),
+  LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
+
+  // ---- WhatsApp via Twilio ----
+  TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
+  TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
+  /** Sender in Twilio format, e.g. whatsapp:+14155238886 (sandbox number). */
+  TWILIO_WHATSAPP_FROM: z.string().min(1).optional(),
+  WHATSAPP_PATH: z
+    .string()
+    .min(1)
+    .default("/whatsapp")
+    .transform((value) => (value.startsWith("/") ? value : `/${value}`)),
+  /** Verify Twilio request signatures. Recommended in production. */
+  TWILIO_VALIDATE_SIGNATURE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
 });
 
 export type Env = z.infer<typeof envSchema>;

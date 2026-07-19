@@ -388,6 +388,46 @@ MCP_API_KEY=... npm run test:http  # in another (drives it as a real MCP client)
 
 ---
 
+## Connect to WhatsApp (Twilio)
+
+WhatsApp is a messaging channel, not an MCP client, so it needs an LLM "brain"
+in the middle. The built-in bridge does this:
+
+```
+WhatsApp user  ⇄  Twilio  ⇄  POST /whatsapp  ⇄  LLM tool-loop  ⇄  the 12 loan tools  ⇄  Dataverse
+```
+
+An inbound message is sent to an LLM (Hugging Face by default) with the loan
+tools attached; the model calls the right tools and the reply is sent back via
+Twilio. It runs **inside the same HTTP server** — no separate deployment.
+
+**Activation:** the bridge is active only when `HUGGINGFACE_API_KEY` **and** all
+`TWILIO_*` settings are present (see `.env.example`). `GET /healthz` reports
+`"whatsapp":"enabled"` when configured. Until then, inbound messages are
+acknowledged and ignored.
+
+**Setup (testing):**
+
+1. **LLM key** — a Hugging Face token (or any OpenAI-compatible endpoint via
+   `LLM_BASE_URL`/`LLM_MODEL`). Set `HUGGINGFACE_API_KEY`.
+2. **Twilio WhatsApp Sandbox** — Twilio Console → Messaging → Try it out →
+   Send a WhatsApp message. Note the **Account SID**, **Auth Token**, sandbox
+   **From** number (`whatsapp:+14155238886`) and the join code; join from your
+   phone. Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`.
+3. **Webhook** — in the sandbox settings, set *"When a message comes in"* to
+   `https://<your-host>/whatsapp` (POST). On Azure that's
+   `https://<app>.azurewebsites.net/whatsapp`.
+4. Set `TWILIO_VALIDATE_SIGNATURE=true` once the public URL is stable.
+
+Then text the sandbox number, e.g. *"status of LN-20260708090758"* or
+*"how many loans are under review?"*.
+
+> These are separate secrets from the MCP server — set them in the host's
+> environment (Azure **App settings**), never in code. The bridge adds no new npm
+> dependencies.
+
+---
+
 ## Example MCP requests & responses
 
 **Call `GetLoanSummary`**

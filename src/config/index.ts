@@ -32,6 +32,19 @@ function buildConfig() {
       apiKey: env.MCP_API_KEY,
       corsOrigin: env.MCP_CORS_ORIGIN,
     },
+    llm: {
+      apiKey: env.HUGGINGFACE_API_KEY,
+      model: env.LLM_MODEL,
+      baseUrl: env.LLM_BASE_URL,
+      timeoutMs: env.LLM_TIMEOUT_MS,
+    },
+    whatsapp: {
+      path: env.WHATSAPP_PATH,
+      accountSid: env.TWILIO_ACCOUNT_SID,
+      authToken: env.TWILIO_AUTH_TOKEN,
+      from: env.TWILIO_WHATSAPP_FROM,
+      validateSignature: env.TWILIO_VALIDATE_SIGNATURE,
+    },
     logging: {
       level: env.LOG_LEVEL,
     },

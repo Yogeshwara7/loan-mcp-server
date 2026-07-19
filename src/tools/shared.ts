@@ -29,15 +29,28 @@ export type ShapeArgs<Shape extends ZodRawShape> = {
   [K in keyof Shape]: z.infer<Shape[K]>;
 };
 
-/** A function that registers a tool onto an MCP server. */
-export type ToolRegistrar = (server: McpServer, ctx: ToolContext) => void;
-
+/** A tool declaration, generic over its Zod input shape. */
 export interface ToolDefinition<Shape extends ZodRawShape> {
   name: string;
   title: string;
   description: string;
   inputSchema: Shape;
   execute: (args: ShapeArgs<Shape>, ctx: ToolContext) => Promise<Record<string, unknown>>;
+}
+
+/**
+ * Shape-erased tool definition for storage in registries and reuse across
+ * consumers (MCP registration + the LLM tool-calling loop).
+ */
+export interface AnyToolDefinition {
+  name: string;
+  title: string;
+  description: string;
+  inputSchema: ZodRawShape;
+  execute: (
+    args: Record<string, unknown>,
+    ctx: ToolContext,
+  ) => Promise<Record<string, unknown>>;
 }
 
 const registrarLog = childLogger("tools");
@@ -70,38 +83,51 @@ export function errorResult(
 }
 
 /**
- * Declare a tool. Returns a registrar that binds the tool to a server + context
- * and applies logging/timing/error handling around the business function.
+ * Declare a tool. Type-checks the concrete input shape, then returns the
+ * shape-erased definition for storage in the registry. The same definition is
+ * consumed by both `registerTool` (MCP) and the LLM tool-calling loop.
  */
 export function defineTool<Shape extends ZodRawShape>(
   def: ToolDefinition<Shape>,
-): ToolRegistrar {
-  return (server, ctx) => {
-    const log = childLogger(`tool:${def.name}`);
+): AnyToolDefinition {
+  return def as unknown as AnyToolDefinition;
+}
 
-    const handler = async (args: ShapeArgs<Shape>): Promise<CallToolResult> => {
-      const started = Date.now();
-      log.debug({ tool: def.name }, "Tool invoked");
-      try {
-        const payload = await def.execute(args, ctx);
-        log.info({ tool: def.name, durationMs: Date.now() - started }, "Tool completed");
-        return successResult(payload);
-      } catch (error) {
-        return errorResult(error, def.name, log);
-      }
-    };
+/**
+ * Register a tool definition onto an MCP server, wrapping its business function
+ * with execution timing, structured logging and error-to-MCP translation.
+ */
+export function registerTool(
+  server: McpServer,
+  def: AnyToolDefinition,
+  ctx: ToolContext,
+): void {
+  const log = childLogger(`tool:${def.name}`);
 
-    server.registerTool(
-      def.name,
-      {
-        title: def.title,
-        description: def.description,
-        inputSchema: def.inputSchema,
-      },
-      // The handler is fully typed against the concrete shape; the cast bridges
-      // TypeScript's overload inference for the SDK's generic `registerTool`.
-      handler as unknown as ToolCallback<Shape>,
-    );
-    registrarLog.debug({ tool: def.name }, "Tool registered");
+  const handler = async (
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> => {
+    const started = Date.now();
+    log.debug({ tool: def.name }, "Tool invoked");
+    try {
+      const payload = await def.execute(args, ctx);
+      log.info({ tool: def.name, durationMs: Date.now() - started }, "Tool completed");
+      return successResult(payload);
+    } catch (error) {
+      return errorResult(error, def.name, log);
+    }
   };
+
+  server.registerTool(
+    def.name,
+    {
+      title: def.title,
+      description: def.description,
+      inputSchema: def.inputSchema,
+    },
+    // The cast bridges TypeScript's overload inference for the SDK's generic
+    // `registerTool`; the runtime contract is fully satisfied.
+    handler as unknown as ToolCallback<ZodRawShape>,
+  );
+  registrarLog.debug({ tool: def.name }, "Tool registered");
 }
